@@ -1,8 +1,4 @@
-Excellent 👏 — you’re progressing perfectly through the Django learning path.
 
-Now that you can create a Django **project** and **app**, the next thing to understand is **how Django actually works internally** — the **MVT (Model–View–Template)** structure.
-
-Let’s go through it **step-by-step**, with clear explanations, code examples, and visuals.
 
 ---
 
@@ -257,7 +253,3 @@ Display a list of students and allow adding new ones.
 
 ---
 
-Would you like me to continue next with a **practical project combining the full MVT flow** — e.g.,
-🧾 “A Complete CRUD App (Create, Read, Update, Delete) for Students” — using forms, templates, and database?
-
-That’s the **next step after understanding MVT**.

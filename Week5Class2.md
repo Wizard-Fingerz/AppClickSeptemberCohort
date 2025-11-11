@@ -1,6 +1,4 @@
-Perfect 👌 — now that you understand **how to install Django and set up a virtual environment**, the next step is to **create a Django project and app**, then learn how they work together.
 
-Let’s go through it **comprehensively, step-by-step** so you’ll not only know the commands but also understand the **why** behind each step.
 
 ---
 
@@ -331,10 +329,3 @@ You now have access to Django’s built-in **Admin Dashboard**.
 
 ---
 
-## 🧠 **Next Lesson Suggestion**
-
-Would you like to proceed next with:
-**“Creating Models, Migrations, and Using Django ORM (Database)”**
-→ where we define models (tables), migrate them, and interact with data in Python?
-
-That’s the next logical step after creating your project and app.
