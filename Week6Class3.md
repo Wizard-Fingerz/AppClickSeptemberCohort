@@ -1,147 +1,128 @@
-# Django Templates — Comprehensive Teaching Note
+# Django Templates in a School Portal — Comprehensive Note
 
 ---
 
-## 1. Overview: What are Django Templates?
+## 1. Overview: What are Django Templates (in a School Portal)?
 
-* Django templates are the presentation layer in the MVT pattern.
-* Purpose: separate presentation (HTML) from view logic. Templates are HTML with template language constructs (`{{ }}`, `{% %}`).
-* Templates are intentionally not full programming languages — they let you render variables, control flow, include other templates, and use filters/tags.
+* Django templates are the presentation layer (View) in the MVT pattern, used to generate dynamic HTML for the school portal.
+* Purpose: Keep the presentation of content (HTML for students, teachers, and admin) separate from backend logic.
+* Templates use Django's template language (`{{ }}` and `{% %}`) for rendering variables (like student names, grades), logic, includes, and reusable components.
 
 ---
 
-## 2. Basic Concepts & Syntax
+## 2. Basic Concepts & Syntax (School Portal Examples)
 
 ### Variables
 
 ```html
 <p>Hello, {{ user.first_name }}!</p>
+<p>Your current class: {{ student.current_class }}</p>
 ```
 
-### Filters (transform data)
+### Filters
 
 ```html
-{{ post.title|lower }}
-{{ value|default:"N/A" }}
-{{ price|floatformat:2 }}
+{{ announcement.title|upper }}
+{{ student.grade|default:"Not Graded" }}
+{{ result.score|floatformat:1 }}
 ```
 
-### Tags (logic & flow)
-
-* Control flow:
+### Tags (control flow, loops)
 
 **View Example:**
 
 ```python
-from django.shortcuts import render
-
-def welcome_view(request):
-    # The user object is included in the template context by Django's authentication system
-    # so we typically don't need to pass it explicitly
-    return render(request, 'welcome.html')
+def dashboard(request):
+    # Django injects 'user' into template context automatically
+    return render(request, 'dashboard.html')
 ```
 
-**Template (welcome.html):**
+**Template (`dashboard.html`):**
 
 ```django
 {% if user.is_authenticated %}
-  <p>Welcome back, {{ user.username }}</p>
+  <p>Welcome, {{ user.username }}!</p>
+  <a href="{% url 'logout' %}">Logout</a>
 {% else %}
   <a href="{% url 'login' %}">Login</a>
 {% endif %}
 ```
 
-
-* For loops:
-
-**View Example:**
+**Loop Example (List of Students):**
 
 ```python
-from django.shortcuts import render
-
-def product_list(request):
-    products = [
-        {"name": "Laptop", "price": 1200},
-        {"name": "Smartphone", "price": 700},
-        {"name": "Headphones", "price": 150},
-    ]
-    return render(request, "product_list.html", {"products": products})
+def class_list(request):
+    students = Student.objects.filter(classroom__name="JSS1")
+    return render(request, "students/class_list.html", {"students": students})
 ```
-
-**Template (`product_list.html`):**
 
 ```django
 <ul>
-{% for product in products %}
-  <li>{{ product.name }} — {{ product.price }}</li>
+{% for student in students %}
+  <li>{{ student.full_name }} ({{ student.registration_number }})</li>
 {% empty %}
-  <li>No products available</li>
+  <li>No students in this class.</li>
 {% endfor %}
 </ul>
 ```
 
-
-* Include:
-
+*Include:*
 ```django
 {% include "partials/navbar.html" %}
 ```
 
-* Template inheritance:
-
+*Template inheritance:*
 ```django
 {% extends "base.html" %}
 {% block content %}
-  <h1>Home</h1>
+  <h1>Dashboard</h1>
 {% endblock %}
 ```
 
 ---
 
-## 3. Template Directory Setup
+## 3. Template Directory Setup (Typical School Portal)
 
-* Default: `TEMPLATES` setting in `settings.py` controls loaders and dirs.
-
+* In `settings.py`, ensure `TEMPLATES` has the correct directories:
 ```python
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
-        ...
     },
 ]
 ```
 
-* Typical structure:
-
+* Folder structure example:
 ```
-project/
-├─ app1/
-│  └─ templates/app1/...
+schoolportal/
+├─ students/
+│  └─ templates/students/...
+├─ staff/
+│  └─ templates/staff/...
 ├─ templates/
 │  ├─ base.html
 │  ├─ partials/
 │  │  ├─ navbar.html
 │  │  └─ footer.html
-│  └─ pages/
-│     └─ home.html
+│  └─ dashboard.html
 ```
 
 ---
 
-## 4. Template Inheritance — The Foundation of Reuse
+## 4. Template Inheritance
 
-`base.html` (global layout):
+*Global layout in `base.html` (school portal style):*
 
 ```html
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>{% block title %}MySite{% endblock %}</title>
+  <title>{% block title %}School Portal{% endblock %}</title>
   {% load static %}
-  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+  <link rel="stylesheet" href="{% static 'css/portal.css' %}">
   {% block head %}{% endblock %}
 </head>
 <body>
@@ -153,431 +134,194 @@ project/
 </html>
 ```
 
-Child template:
+*Example child template for student profile:*
 
 ```python
 # views.py
-from django.shortcuts import render, get_object_or_404
-from .models import Product
-
-def product_detail(request, pk):
-    product = get_object_or_404(Product, pk=pk)
-    return render(request, 'product/detail.html', {'product': product})
+def student_profile(request, pk):
+    student = get_object_or_404(Student, pk=pk)
+    return render(request, "students/profile.html", {"student": student})
 ```
 
 ```django
-{# templates/product/detail.html #}
+{# templates/students/profile.html #}
 {% extends "base.html" %}
-{% block title %}Product — {{ product.name }}{% endblock %}
+{% block title %}{{ student.full_name }} — Profile{% endblock %}
 {% block content %}
-  <h1>{{ product.name }}</h1>
-  <p>{{ product.description }}</p>
+  <h1>{{ student.full_name }}</h1>
+  <p>Registration No: {{ student.registration_number }}</p>
+  <p>Class: {{ student.current_class }}</p>
 {% endblock %}
- 
+```
 
 ---
 
 ## 5. Passing Data: Views → Templates
 
-* Function-based view:
-
+*Function-based view example (results sheet):*
 ```python
-from django.shortcuts import render, get_object_or_404
-from .models import Product
-
-def product_detail(request, pk):
-    product = get_object_or_404(Product, pk=pk)
-    related = Product.objects.filter(category=product.category).exclude(pk=pk)[:4]
-    return render(request, 'product/detail.html', {'product': product, 'related': related})
+def result_sheet(request, student_id):
+    student = get_object_or_404(Student, pk=student_id)
+    results = Result.objects.filter(student=student)
+    return render(request, 'students/result_sheet.html', {
+        'student': student,
+        'results': results
+    })
 ```
 
-* Class-based view:
-
+*Class-based view for student details:*
 ```python
-# Import the generic DetailView for class-based generic view
 from django.views.generic import DetailView
 
-# ProductDetail provides detail page for a Product instance.
-# It uses the model Product, the template at product/detail.html,
-# and in the template, the object will be available as "product".
-class ProductDetail(DetailView):
-    model = Product  # The model this view will retrieve
-    template_name = 'product/detail.html'  # Which template to render
-    context_object_name = 'product'  # Name to use for the object in the template context
+class StudentDetailView(DetailView):
+    model = Student
+    template_name = "students/profile.html"
+    context_object_name = "student"
 ```
 
 ---
 
-## 6. Template Tags & Filters (Built-in)
+## 6. Template Tags & Filters (Built-in, with School Portal Emphasis)
 
-* URL reversing: `{% url 'product_detail' product.pk %}`
-* Static files in Django: To include CSS, JavaScript, or images that are stored in your project's `static` directory, first load the static template tag at the top of your template: `{% load static %}`.
-
-- **CSS**: Reference stylesheets in the `<head>` of your HTML.
-  ```html
-  {% load static %}
-  <link rel="stylesheet" href="{% static 'css/site.css' %}">
+* Reverse URLs for attendance, results, etc: `{% url 'attendance_detail' record.pk %}`
+* Static files (CSS, images): `{% load static %}` and then `{% static 'img/school_logo.png' %}`
+* Using filters for presenting grades, scores with formatting:
+  ```django
+  {{ result.score|floatformat:1 }}
   ```
-
-- **JavaScript**: Link JS files, typically before the closing `</body>`.
-  ```html
-  <script src="{% static 'js/scripts.js' %}"></script>
-  ```
-
-- **Images**: Use the `static` tag for image URLs.
-  ```html
-  <img src="{% static 'img/logo.png' %}" alt="Logo">
-  ```
-
-- **External CSS/JS**: For styles or scripts hosted outside your project (like from a CDN), use the full URL directly.
-  ```html
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  ```
-
-**Summary:**  
-- Use `{% load static %}` to access static files in your Django app.  
-- Use `{% static 'path/to/file' %}` to build URLs for files in your `static/` directories.  
-- External files (CSS/JS/images) should be linked with their complete URL without `{% static %}`.
-* i18n: `{% trans "Hello" %}`
+* Translate UI: `{% trans "Welcome" %}` (add i18n for multi-lingual schools if needed)
 
 ---
 
 ## 7. Custom Template Tags & Filters
 
-**When to use**: complex presentation logic that’s reused across templates.
+*Use for repeated presentation logic (e.g., rendering student status, or calculating average score in templates).*
 
-Example filter (slugify):
-`myapp/templatetags/mytags.py`
+Example: `students/templatetags/school_tags.py`
 
 ```python
 from django import template
-from django.utils.text import slugify
 
 register = template.Library()
 
 @register.filter
-def make_slug(value):
-    return slugify(value)
+def pass_fail(score):
+    return "Passed" if score >= 50 else "Failed"
 ```
 
 In template:
-
 ```django
-{% load mytags %}
-{{ "Hello World" | make_slug }}  {# outputs: hello-world #}
+{% load school_tags %}
+{{ result.score|pass_fail }}
 ```
 
-Example simple inclusion tag:
+*Inclusion tag example (recent announcements partial):*
 
 ```python
-@register.inclusion_tag('partials/recent_posts.html')
-def show_recent_posts(count=5):
-    from blog.models import Post
-    posts = Post.objects.published()[:count]
-    return {'posts': posts}
+@register.inclusion_tag('partials/recent_announcements.html')
+def show_recent_announcements(count=4):
+    from portal.models import Announcement
+    announcements = Announcement.objects.order_by('-created_at')[:count]
+    return {'announcements': announcements}
 ```
-
-Use: `{% show_recent_posts 3 %}`
-
-**Teaching tip:** demonstrate creating tags/filters, test them, and stress keeping logic in Python (not templates).
+In template: `{% show_recent_announcements 4 %}`
 
 ---
 
-## 8. Context Processors
+## 8. Context Processors (School Info Example)
 
-* Purpose: inject data into context for all templates (e.g., site name, cart count).
-* Example: `myapp/context_processors.py`
+*Add site-wide variables to all templates, e.g., school name, session, overall stats.*
 
+`portal/context_processors.py`
 ```python
-def site_info(request):
-    return {'SITE_NAME': 'MyShop'}
+def school_info(request):
+    return {
+        'SCHOOL_NAME': "Bright Future Academy",
+        'CURRENT_SESSION': "2023/2024"
+    }
 ```
-
-In `settings.py`, add your context processor to the `TEMPLATES` `OPTIONS["context_processors"]` list:
-
+Add in `settings.py`:
 ```python
-TEMPLATES = [
-    {
-        # ...
-        'OPTIONS': {
-            'context_processors': [
-                # ... existing context processors ...
-                'myapp.context_processors.site_info',  # add this line
-            ],
-        },
-    },
-]
+'portal.context_processors.school_info',
 ```
-
-
-**In your template, use the injected variable as follows:**
-
+Usage in template:
 ```django
-{{ SITE_NAME }}
+{{ SCHOOL_NAME }} — Session: {{ CURRENT_SESSION }}
 ```
 
-
-**Caution:** Avoid running heavy database queries inside context processors because context processors are executed on every template-rendered request—this can significantly slow down your site and increase database load.
-
+*Tip: Don’t run heavy database queries in context processors!*
 
 ---
 
-## 9. Forms in Templates
+## 9. Forms in Templates (e.g., Student Registration or Contact Form)
 
-### Using `forms` from `django.forms`
-
-**In `forms.py`:**
-
+**Define a form in `forms.py`:**
 ```python
 from django import forms
-from .models import Contact  # assuming you have a Contact model
+from .models import Student
 
-class ContactForm(forms.ModelForm):
+class StudentRegistrationForm(forms.ModelForm):
     class Meta:
-        model = Contact
-        fields = ['name', 'email', 'message']  # use your actual model fields
+        model = Student
+        fields = ['full_name', 'registration_number', 'current_class', 'email']
 ```
 
-*If you just want a plain form, not linked to a model:*
-
+**In view:**
 ```python
-from django import forms
-
-class ContactForm(forms.Form):
-    name = forms.CharField(max_length=100)
-    email = forms.EmailField()
-    message = forms.CharField(widget=forms.Textarea)
-```
-
-
-* In view:
-
-```python
-from .forms import ContactForm
-
-def contact(request):
-    form = ContactForm(request.POST or None)
+def register_student(request):
+    form = StudentRegistrationForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         form.save()
-        return redirect('contact_thanks')
-    return render(request, 'contact.html', {'form': form})
+        return redirect('student_success')
+    return render(request, 'students/register.html', {'form': form})
 ```
 
-* In template:
-
+**In template:**
 ```django
 <form method="post" novalidate>
   {% csrf_token %}
   {{ form.as_p }}
-  <button type="submit">Send</button>
+  <button type="submit">Register</button>
 </form>
 ```
 
-### Rendering field by field:
-
+**Field-by-field (for better control):**
 ```django
-<div>
-  <label for="{{ form.name.id_for_label }}">Name</label>
-  {{ form.name }}
-  {% if form.name.errors %}
-    <div class="errors">{{ form.name.errors }}</div>
-  {% endif %}
-</div>
+<label for="{{ form.current_class.id_for_label }}">Class</label>
+{{ form.current_class }}
+{% if form.current_class.errors %}
+    <div class="errors">{{ form.current_class.errors }}</div>
+{% endif %}
 ```
 
-**Tip:** Use `crispy-forms` or similar for better HTML without mixing presentation logic into forms.
-### Using `crispy-forms` for Better Form Rendering
+**Tip:** For beautiful forms, use [django-crispy-forms](https://django-crispy-forms.readthedocs.io):
 
-`django-crispy-forms` is a powerful, flexible way to render beautiful, customizable forms in Django **without having to hand-code much HTML in your templates**. It adds layout objects, helpers, and template packs (especially Bootstrap) to make forms more attractive and DRY.
-
-#### 1. Install and Set Up
-
-```bash
-pip install django-crispy-forms
-pip install crispy-bootstrap5   # Or crispy-bootstrap4, crispy-tailwind, etc.
-```
-
-*In `settings.py`:*
-
-```python
-INSTALLED_APPS = [
-    # ...
-    "crispy_forms",
-    "crispy_bootstrap5",  # Or the pack you want
-]
-
-CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
-CRISPY_TEMPLATE_PACK = "bootstrap5"
-```
-
-#### 2. Use in a Form
-
-Let's rework our earlier `ContactForm`:
-
-```python
-from django import forms
-
-class ContactForm(forms.Form):
-    name = forms.CharField(max_length=100)
-    email = forms.EmailField()
-    message = forms.CharField(widget=forms.Textarea)
-
-    # Optionally: Add crispy helper for layout
-    from crispy_forms.helper import FormHelper
-    from crispy_forms.layout import Submit
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = self.FormHelper()
-        self.helper.form_method = "post"
-        self.helper.add_input(Submit("submit", "Send"))
-```
-
-Or, for finer control:
-
-```python
-from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Field, Row, Column, Submit
-
-class ContactForm(forms.Form):
-    # ...fields as above...
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.layout = Layout(
-            Row(
-                Column("name", css_class="col-md-6"),
-                Column("email", css_class="col-md-6"),
-            ),
-            "message",
-            Submit("submit", "Send")
-        )
-```
-
-#### 3. In the Template
-
-At the top of your template, **load the crispy_forms tags:**
-
-```django
-{% load crispy_forms_tags %}
-```
-
-Then, to render the form using all crispy magic & Bootstrap styles:
-
-```django
-<form method="post">
-  {% csrf_token %}
-  {{ form|crispy }}
-</form>
-```
-
-#### 4. Customizing Button Placement, etc.
-
-Crispy provides helper/layout classes to customize the form:
-
-```python
-from crispy_forms.layout import Layout, Field, Row, Column, ButtonHolder, Submit
-
-self.helper.layout = Layout(
-    Row(
-        Column('name'),
-        Column('email'),
-    ),
-    Field('message'),
-    ButtonHolder(
-        Submit('submit', 'Send')
-    )
-)
-```
-
-#### 5. Full Example
-
-**views.py:**
-
-```python
-from .forms import ContactForm
-
-def contact(request):
-    form = ContactForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        # process data...
-        return redirect("contact_thanks")
-    return render(request, "contact.html", {"form": form})
-```
-
-**contact.html:**
-
-```django
-{% extends "base.html" %}
-{% load crispy_forms_tags %}
-
-{% block content %}
-  <h2>Contact Us</h2>
-  <form method="post" novalidate>
-    {% csrf_token %}
-    {{ form|crispy }}
-  </form>
-{% endblock %}
-```
-
-#### 6. ModelForms + Crispy
-
-For model forms, everything works the same way:
-
-```python
-from .models import Product
-from crispy_forms.helper import FormHelper
-
-class ProductForm(forms.ModelForm):
-    class Meta:
-        model = Product
-        fields = ["name", "price", "image"]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.helper = FormHelper()
-        self.helper.form_method = "post"
-```
-
-#### 7. Template Packs
-
-Crispy supports several packs: `bootstrap4`, `bootstrap5`, `uni_form`, `tailwind`, etc.
-Choose the pack in settings, and make sure your project includes that CSS so classes map correctly.
-
-#### 8. Extra Tips
-
-- You can still access fields individually (`form.name`), but `|crispy` is usually much better.
-- Form errors are automatically shown/handled.
-- Customize field attributes per-field (`self.fields["name"].widget.attrs["placeholder"] = ...`).
-
-**Reference:** [https://django-crispy-forms.readthedocs.io](https://django-crispy-forms.readthedocs.io)
+- Install with `pip install django-crispy-forms crispy-bootstrap5`
+- Add to `INSTALLED_APPS` and configure pack/settings.
+- Use `{% load crispy_forms_tags %}` and render with `{{ form|crispy }}`
 
 ---
 
-## 10. Static Files & Media in Templates
+## 10. Static Files & Media
 
-* `settings.py`:
+*Settings for your school’s brand assets, CSS, and user-uploaded files.*
 
 ```python
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles'     # for collectstatic in production
-
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 ```
 
-* Template usage:
-
+*Templates:*
 ```django
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/main.css' %}">
-<img src="{{ product.image.url }}" alt="{{ product.name }}">
+<link rel="stylesheet" href="{% static 'css/portal.css' %}">
+<img src="{{ student.photo.url }}" alt="{{ student.full_name }}">
 ```
 
-* For serving media in development:
-
+*Serve media in development:*
 ```python
 from django.conf import settings
 from django.conf.urls.static import static
@@ -589,35 +333,32 @@ urlpatterns = [
 
 ---
 
-## 11. Pagination in Templates
+## 11. Pagination in Templates (E.g., Student Lists, Parent Lists)
 
-* View:
-
+*View:*
 ```python
 from django.core.paginator import Paginator
 
-def product_list(request):
-    products = Product.objects.all()
-    paginator = Paginator(products, 12)
+def all_students(request):
+    students = Student.objects.all()
+    paginator = Paginator(students, 20)
     page = request.GET.get('page')
-    products_page = paginator.get_page(page)
-    return render(request, 'product/list.html', {'products': products_page})
+    students_page = paginator.get_page(page)
+    return render(request, 'students/list.html', {'students': students_page})
 ```
 
-* Template:
-
+*Template:*
 ```django
-{% for p in products %}
-  {{ p.name }}
+{% for s in students %}
+  {{ s.full_name }}
 {% endfor %}
-
 <div class="pagination">
-  {% if products.has_previous %}
-    <a href="?page={{ products.previous_page_number }}">Prev</a>
+  {% if students.has_previous %}
+    <a href="?page={{ students.previous_page_number }}">Prev</a>
   {% endif %}
-  Page {{ products.number }} of {{ products.paginator.num_pages }}
-  {% if products.has_next %}
-    <a href="?page={{ products.next_page_number }}">Next</a>
+  Page {{ students.number }} of {{ students.paginator.num_pages }}
+  {% if students.has_next %}
+    <a href="?page={{ students.next_page_number }}">Next</a>
   {% endif %}
 </div>
 ```
@@ -626,362 +367,267 @@ def product_list(request):
 
 ## 12. Template Security & Escaping
 
-* **Django automatically escapes variables in templates to prevent XSS** (Cross Site Scripting) attacks.
+* By default, Django escapes variables to prevent XSS. Always sanitize untrusted content before using `|safe`.
+* Example: do **NOT** do `{{ request.POST.bio|safe }}` without cleaning input.
+* For HTML from teachers' announcements/notes, sanitize server-side (e.g., with `bleach`).
 
-  **Example:**
-  ```django
-  {{ user_input }}
-  ```
-  If `user_input` contains `<script>alert('xss')</script>`, the template will render:
-  ```html
-  &lt;script&gt;alert('xss')&lt;/script&gt;
-  ```
-  (The script tags are escaped, so the script won't execute.)
-
-* **Using the `safe` filter:**  
-  Only use the `|safe` filter if you're absolutely sure that the content cannot contain harmful scripts (i.e., it has been sanitized).
-
-  **Correct Usage (after sanitizing):**
-  ```python
-  # views.py
-  import bleach
-
-  def my_view(request):
-      raw_content = request.POST.get('bio', '')
-      clean_content = bleach.clean(raw_content)
-      return render(request, "profile.html", {"content": clean_content})
-  ```
-  ```django
-  {# profile.html #}
-  {{ content|safe }}
-  ```
-
-  Or, when rendering safe HTML generated from Markdown:
-  ```python
-  # views.py
-  import markdown
-
-  def blog_detail(request):
-      raw_body = get_blog_body()
-      html_body = markdown.markdown(raw_body, extensions=["extra"], output_format="html5")
-      return render(request, "blog/detail.html", {"body": html_body})
-  ```
-  ```django
-  {# blog/detail.html #}
-  {{ body|safe }}
-  ```
-
-* **NEVER do this without sanitizing input:**
-  ```django
-  {{ request.POST.bio|safe }}
-  ```
-  Rendering unsanitized user input marked as safe can allow attackers to inject scripts.
-
-**Key Point:**  
-🔒 Always sanitize user-generated content before marking it safe.  
-🔗 See: [Django docs: Output escaping](https://docs.djangoproject.com/en/stable/topics/templates/#automatic-html-escaping)
+**🔒 Key:** Always sanitize user content before marking as safe!  
+See: [Django Output Escaping](https://docs.djangoproject.com/en/stable/topics/templates/#automatic-html-escaping)
 
 ---
 
 ## 13. Performance & Caching
 
-* Template fragment caching:
-
+* Use template fragment caching for slow-to-render blocks (e.g., stats summaries on dashboard):
 ```django
 {% load cache %}
-{% cache 600 product_list %}
-  ... expensive HTML generation ...
+{% cache 600 dashboard_stats %}
+  <!-- expensive template code -->
 {% endcache %}
 ```
-
-* Full-page caching (with caching middleware) for anonymous users.
-* Use `select_related` / `prefetch_related` in views to reduce DB hits before rendering templates.
-* Use `context` dictionaries that are small — heavy computations should be done in views or background jobs.
+* Use `select_related` and `prefetch_related` in views for related objects (e.g. students and results).
+* Do heavy computations in views, not in templates/context processors.
 
 ---
 
-## 14. Internationalization (i18n) in Templates
+## 14. Internationalization (i18n)
 
-* Mark strings:
-
+* Mark strings for translation:
 ```django
 {% load i18n %}
-{% trans "Welcome" %}
+{% trans "Class" %}
 ```
-
-* Variables:
-
+* For variables:
 ```django
-{% blocktrans %}Hello {{ user.first_name }}{% endblocktrans %}
+{% blocktrans %}Welcome, {{ student.full_name }}!{% endblocktrans %}
 ```
-
-* Compile messages and set up translations with `makemessages` and `compilemessages`.
 
 ---
 
 ## 15. Testing Templates
 
-* Use `django.test.Client` to render views and assert content:
-
+* Use `django.test.Client` to test views/templates:
 ```python
 from django.test import TestCase
 from django.urls import reverse
 
-class HomeViewTests(TestCase):
-    def test_home_contains_site_name(self):
-        response = self.client.get(reverse('home'))
-        self.assertContains(response, "MyShop")
+class DashboardTemplateTest(TestCase):
+    def test_dashboard_has_school_name(self):
+        response = self.client.get(reverse('dashboard'))
+        self.assertContains(response, "Bright Future Academy")
 ```
-
-* For template tags/filters, write unit tests that call the tag functions directly or render a small template snippet in test.
-
----
-
-## 16. Advanced Patterns for Full-Scale Apps
-
-* **Componentization**: partials/blocks for nav, footer, product card, filters.
-* **Reusable apps**: keep generic templates under `app_name/templates/app_name/` to avoid collisions.
-* **Design system**: keep CSS and JS organized (e.g., Tailwind or Bootstrap). Use `static/` for assets.
-* **Client-side interactivity**: small JS sprinkles for UX (AJAX forms, live search) but keep main rendering server-side.
-* **Progressive Enhancement**: render full HTML on server, then enhance with JS.
+* Test custom template tags/filters in unit tests.
 
 ---
 
-## 17. Example: Build a Mini E-commerce App (MyShop) — Templates-focused
+## 16. Advanced Patterns (for Large School Portals)
 
-### Data models (simplified)
+* Use includes/partials for navbar, student card, notifications, etc.
+* Keep templates for each app under its own directory (`students/templates/students/`).
+* Use static/ for unified CSS & JS across the portal.
+* Keep main rendering server-side. Use JS sprinkles for things like attendance filtering with AJAX for teachers/admin.
+
+---
+
+## 17. Example: Student Profile Page — Templates Focus
+
+### Models
 
 ```python
-class Category(models.Model):
-    name = models.CharField(max_length=100)
-    slug = models.SlugField(unique=True)
-
-class Product(models.Model):
-    name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
-    description = models.TextField()
-    price = models.DecimalField(max_digits=10, decimal_places=2)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='products/')
+class Student(models.Model):
+    full_name = models.CharField(max_length=100)
+    registration_number = models.CharField(max_length=20, unique=True)
+    current_class = models.CharField(max_length=10)
+    email = models.EmailField()
+    photo = models.ImageField(upload_to='students/photos/', null=True, blank=True)
 ```
 
-### Views
-
-* `product_list`, `product_detail`, `category_list`, search view — pass QuerySets to templates.
-
-### Templates
-
-* `base.html`, `partials/navbar.html`, `partials/product_card.html`, `product/list.html`, `product/detail.html`, `cart/detail.html`, `checkout.html`
-* Use template inheritance, include, pagination, forms for checkout, CSRF token for POSTs.
-
-### Example `product_card` partial:
-
-```django
-<div class="product-card">
-  <a href="{% url 'product_detail' product.slug %}">
-    <img src="{{ product.image.url }}" alt="{{ product.name }}">
-    <h3>{{ product.name }}</h3>
-    <p>{{ product.price|floatformat:2 }}</p>
-  </a>
-</div>
-```
-
-### Template for search form in navbar:
-
-```django
-<form method="get" action="{% url 'search' %}">
-  <input type="search" name="q" value="{{ request.GET.q }}">
-  <button type="submit">Search</button>
-</form>
-```
-
-### Cart count: Example context processor
+### View
 
 ```python
-def cart_count(request):
-    count = 0
-    if request.user.is_authenticated:
-        count = request.user.cart.items.count()
-    return {'cart_count': count}
+def student_profile(request, pk):
+    student = get_object_or_404(Student, pk=pk)
+    return render(request, 'students/profile.html', {'student': student})
 ```
 
-Then show `{{ cart_count }}` in navbar.
-
----
-
-## 18. Serving Templates in Production — Static & Media
-
-* Use `collectstatic` to gather static files to `STATIC_ROOT`.
-* Use whitenoise for simple setups (Django + Gunicorn) or serve static via CDN/Nginx.
-* Media files: upload to S3 or a dedicated media server or configured Nginx location.
-* Ensure `DEBUG = False` and `ALLOWED_HOSTS` set.
-
-Deployment snippet (Nginx + Gunicorn):
-
-* Nginx serves static/media.
-* Gunicorn runs Django app; templates are rendered by Django.
-
----
-
-## 19. SEO & Accessibility
-
-* Use semantic HTML and meta tags (`title`, `description`, `og:` tags) in `head` blocks.
-* Breadcrumbs, `<nav>`, alt attributes on images: `alt="{{ product.name }}"`.
-* Use server-side rendering for content so crawlers see full HTML.
-
----
-
-## 20. Common Mistakes & How to Teach Avoiding Them
-
-* Doing heavy DB work in templates (not allowed, but heavy loops can still cause N+1 queries) — teach use of `select_related`.
-* Overusing `{% include %}` for tiny fragments that replicate logic — prefer components.
-* Marking user input `|safe` without sanitizing.
-* Not handling missing images (`{{ obj.image.url }}` can raise if no image — use `if obj.image`).
-* Not using `csrf_token` in forms.
-
----
-
-## 21. Debugging Template Issues
-
-* Use `{{ variable|default:"(missing)" }}` to find why data not present.
-* In dev, `DEBUG = True` will show template tracebacks.
-* Use `django.template.loader.render_to_string` in shell to test template rendering.
-
----
-
-## 22. Template-Related Performance Checklist
-
-* Use `select_related`/`prefetch_related` where needed.
-* Cache fragments of templates used frequently and expensive to build.
-* Avoid database queries inside template tags or context processors where possible.
-* Compress and version static assets using pipeline/webpack or ManifestStaticFilesStorage.
-
----
-
-## 23. Testing & CI
-
-* Write tests for views that render templates (assert presence of key elements).
-* Test custom template tags/filters separately.
-* Include `collectstatic` in CI to ensure no broken static references.
-
----
-
-## 24. Deployment & Production Tips (Checklist)
-
-* Set `DEBUG = False`
-* Set `ALLOWED_HOSTS`
-* Run `python manage.py collectstatic`
-* Use whitenoise or serve static via Nginx / CDN
-* Configure media file storage (S3 recommended)
-* Configure secure headers (HSTS, X-Frame-Options)
-* Use template caching if heavy
-* Monitor errors (Sentry) — include template tracebacks in dev but not prod
-
----
-
-## 25. Lesson Plan / Teaching Sequence (Suggested)
-
-1. Intro to templates & syntax (variables, filters, tags) — demo simple page.
-2. Template inheritance & includes — build `base.html`, `navbar`, `footer`.
-3. Forms & templates — contact form and validation.
-4. Static & media — wire up CSS and images.
-5. Loops, conditions, and pagination.
-6. Custom tags & filters — build one filter and one inclusion tag.
-7. Context processors & navbar/cart count.
-8. Performance — select_related, fragment caching.
-9. Security & escaping — safe/sanitizing user content.
-10. Full project workshop — build a small e-commerce app with templates.
-11. Deployment and static/media in production.
-
----
-
-## 26. Assignments & Exercises
-
-### Quick exercises
-
-* Render a list of students using a loop and show “Passed” if marks ≥ 50.
-* Create `base.html` and two child templates that extend it.
-
-### Medium
-
-* Build a blog index template with pagination and a sidebar that uses an inclusion tag to display recent posts.
-* Create a contact form and render validation errors next to each field.
-
-### Project (capstone)
-
-* **MyShop basic**: product list, product detail, cart, checkout (no payment gateway). Must use template inheritance, forms, context processor for cart count, and include partial templates for product cards. Add unit tests for two views and one custom template tag. Prepare `README` with steps to serve static files.
-
----
-
-## 27. Cheatsheet — Useful Template Shortcuts
-
-* `{{ var|default:"-" }}` — fallback
-* `{% url 'name' arg %}` — reverse URL
-* `{% static 'path' %}` — static file
-* `{% include '...html' %}` — include partial
-* `{% load static %}` — load tag libraries
-* `{% block name %}{% endblock %}` — inheritance
-* `{% csrf_token %}` — security for forms
-
----
-
-## 28. Extra Resources to Recommend to Students
-
-* Django docs: Templates, Forms, Static files
-* Django Debug Toolbar (inspect DB queries)
-* `django-crispy-forms` for nicer form rendering
-* `whitenoise` for static serving in simple deployments
-* `bleach` for sanitizing HTML if you must allow user HTML
-
----
-
-## 29. Example: Minimal Files for Product Detail (complete)
-
-`views.py`
-
-```python
-from django.shortcuts import render, get_object_or_404
-from .models import Product
-
-def product_detail(request, slug):
-    product = get_object_or_404(Product, slug=slug)
-    related = Product.objects.filter(category=product.category).exclude(pk=product.pk)[:4]
-    return render(request, 'product/detail.html', {'product': product, 'related': related})
-```
-
-`templates/product/detail.html`
+### Template
 
 ```django
 {% extends "base.html" %}
-{% block title %}{{ product.name }} - MyShop{% endblock %}
+{% block title %}{{ student.full_name }} — Profile{% endblock %}
 {% block content %}
-  <div class="product-detail">
-    <img src="{{ product.image.url }}" alt="{{ product.name }}">
-    <h1>{{ product.name }}</h1>
-    <p>{{ product.description }}</p>
-    <p>Price: {{ product.price|floatformat:2 }}</p>
-
-    <h3>Related products</h3>
-    <div class="related">
-      {% for r in related %}
-        {% include 'partials/product_card.html' with product=r %}
-      {% empty %}
-        <p>No related products.</p>
-      {% endfor %}
-    </div>
+  <div class="student-profile">
+    {% if student.photo %}
+      <img src="{{ student.photo.url }}" alt="{{ student.full_name }}">
+    {% endif %}
+    <h1>{{ student.full_name }}</h1>
+    <p>Reg#: {{ student.registration_number }}</p>
+    <p>Class: {{ student.current_class }}</p>
+    <p>Email: {{ student.email }}</p>
   </div>
 {% endblock %}
 ```
 
 ---
 
-## 30. Final Teaching Notes / Best Practices Summary
+## 18. Serving Templates & Static/Media in Production
 
-* Keep templates clean: logic in views/models; presentation in templates.
-* Reuse templates via inheritance and includes.
-* Test template outputs.
-* Keep performance in mind: avoid N+1 queries and heavy context processors.
-* Always escape user content by default; sanitize carefully when allowing HTML.
-* Use fragment caching for expensive-to-render parts.
-* Organize templates by app to avoid name collisions: `templates/<app_name>/...`.
+* Run `python manage.py collectstatic` to gather static files.
+* Use [whitenoise](http://whitenoise.evans.io/) or set up Nginx to serve static/media files.
+* Keep `DEBUG = False` and properly set `ALLOWED_HOSTS` for school portal deployment.
+
+---
+
+## 19. Accessibility & Semantic HTML
+
+* Use semantic tags and alt text:  
+  `<img src="{{ student.photo.url }}" alt="{{ student.full_name }}">`
+* Use clear headings, nav, landmark roles, and robust contrast per accessibility guidelines.
+* Server-side rendering ensures screen readers and crawlers see all critical info.
+
+---
+
+## 20. Common School Portal Template Mistakes
+
+* Expensive DB queries in templates/context processors (e.g., calculating class average in template — should be in view!).
+* Not checking for missing images: `if student.photo`.
+* Forgetting `{% csrf_token %}` in student/parent forms.
+* Letting users submit rich text or HTML without server-side sanitization.
+
+---
+
+## 21. Debugging Template Issues
+
+* Use `{{ variable|default:"(missing)" }}` to check context.
+* With `DEBUG=True`, Django will show template errors and context tracebacks.
+* Test template snippets interactively with `django.template.loader.render_to_string` in a shell.
+
+---
+
+## 22. Template-Related Performance Checklist
+
+* Use `select_related`/`prefetch_related` on Student/Result Relations.
+* Cache template blocks reused often.
+* Avoid DB work inside custom tags/context processors.
+* Use proper static asset versioning for CSS/JS (ManifestStaticFilesStorage).
+
+---
+
+## 23. Testing & CI
+
+* Write tests for key student, result, and dashboard template views.
+* Unit test custom template tags (e.g., pass/fail filter).
+* Ensure static/media files are included in CI (test `collectstatic`).
+
+---
+
+## 24. Deployment & Production Tips
+
+* Always set `DEBUG=False`.
+* Set `ALLOWED_HOSTS`.
+* Run `python manage.py collectstatic`.
+* Use whitenoise or Nginx/CDN for static.
+* Secure media storage (local, S3, or protected Nginx for report PDFs, etc).
+* Secure headers and error monitoring.
+* Enable fragment/full-page caching for slow dashboards.
+
+---
+
+## 25. Lesson Plan / Sequence (for a School Portal Project)
+
+1. Intro to Django templates: Variables, filters, blocks (render student dashboard).
+2. Template inheritance and includes: Build `base.html`, `navbar`, and a classroom child template.
+3. Building forms (e.g. registration, result entry), error handling.
+4. Working with static/media (school logo, student photos).
+5. Loops, conditions, and adding pagination (e.g., student lists).
+6. Create and test a custom template tag (pass/fail, class position).
+7. Context processors (school info in nav).
+8. Caching fragments (for school-wide stats).
+9. Security: escaping, CSRF, and handling safe HTML.
+10. Full school portal mini-project (profile, results, registration, dashboard).
+11. Deploy static/media to production.
+
+---
+
+## 26. Assignments & Exercises
+
+### Quick
+
+* Loop over a class list and show “Passed” if a score ≥ 50.
+* Make `base.html` and two child templates (dashboard, result list).
+
+### Medium
+
+* Build student list with pagination and an inclusion tag for recent announcements.
+* Create registration form; render field errors below each input.
+
+### Project (capstone)
+
+* **School Portal mini-project:** student list, student detail/profile page, result entry form, dashboard summary. Use template inheritance, forms, context processor for school info, include partials for announcements. Add unit tests for two views and one custom template tag. Prepare a `README` showing how to set up static/media.
+
+---
+
+## 27. Cheatsheet — School Portal Template Shortcuts
+
+* `{{ var|default:"-" }}` — fallback
+* `{% url 'name' arg %}` — URL reverse
+* `{% static 'path' %}` — file link
+* `{% include 'file.html' %}` — partials
+* `{% load static %}` — tag library
+* `{% block name %}{% endblock %}` — child templates
+* `{% csrf_token %}` — form protection
+
+---
+
+## 28. Further Resources for Students
+
+* Django docs: [Templates](https://docs.djangoproject.com/en/stable/topics/templates/), [Forms](https://docs.djangoproject.com/en/stable/topics/forms/), [Static files](https://docs.djangoproject.com/en/stable/howto/static-files/)
+* Django Debug Toolbar (performance/debugging)
+* `django-crispy-forms` for great form HTML
+* Whitenoise (easy static files in production)
+
+---
+
+## 29. Example: Minimal Files for Student Profile (complete)
+
+`views.py`:
+
+```python
+from django.shortcuts import render, get_object_or_404
+from .models import Student
+
+def student_profile(request, pk):
+    student = get_object_or_404(Student, pk=pk)
+    return render(request, 'students/profile.html', {'student': student})
+```
+
+`templates/students/profile.html`:
+
+```django
+{% extends "base.html" %}
+{% block title %}{{ student.full_name }} - Profile{% endblock %}
+{% block content %}
+  <div class="student-profile">
+    {% if student.photo %}
+      <img src="{{ student.photo.url }}" alt="{{ student.full_name }}">
+    {% endif %}
+    <h1>{{ student.full_name }}</h1>
+    <p>Registration No: {{ student.registration_number }}</p>
+    <p>Class: {{ student.current_class }}</p>
+    <p>Email: {{ student.email }}</p>
+  </div>
+{% endblock %}
+```
+
+---
+
+## 30. Final Teaching Notes / Best Practices (for School Portal Templates)
+
+* Keep templates clean: presentation-only. Do all calculations and queries in views/models.
+* Use inheritance/includes for DRY code.
+* Test and review template outputs.
+* Avoid N+1 queries by using optimized queries and not looping relationships in templates.
+* Escape user content unless you thoroughly sanitize.
+* Use fragment caching for expensive dashboard/stats sections.
+* Group templates by app: `templates/students/`, `templates/staff/`, etc. to prevent name collision and improve maintainability.
 
