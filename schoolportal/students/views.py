@@ -8,7 +8,7 @@ from django.views.generic import TemplateView, ListView, DetailView
 
 
 def home(request):
-    return HttpResponse("<h1>Welcome to the Student Portal</h1>")
+    return render(request, 'home.html')
 
 
 def about(request):
