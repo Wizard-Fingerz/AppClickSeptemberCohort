@@ -1,9 +1,9 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import redirect, render, get_object_or_404
 from django.http import HttpResponse
 from .models import Student
 from django.views import View
 from django.views.generic import TemplateView, ListView, DetailView
-
+from .forms import StudentForm, StudentModelForm
 # Create your views here.
 
 
@@ -49,3 +49,51 @@ class StudentDetailView(DetailView):
     model = Student
     template_name = 'student_detail.html'
     context_object_name = 'student'
+
+
+def student_form(request):
+    if request.method == 'POST':
+        form = StudentForm(request.POST)
+        if form.is_valid():
+            # Access data
+            name = form.cleaned_data['name']
+            age = form.cleaned_data['age']
+            grade = form.cleaned_data['grade']
+            # You can save to DB here manually
+            return render(request, 'success.html', {'name': name})
+    else:
+        form = StudentForm()
+    return render(request, 'student_form.html', {'reg_form': form})
+
+
+
+def add_student(request):
+    if request.method == 'POST':
+        form = StudentModelForm(request.POST)
+        if form.is_valid():
+            form.save()  # Automatically saves to DB
+            return redirect('student_list')
+    else:
+        form = StudentModelForm()
+    return render(request, 'add_student.html', {'form': form})
+
+
+def update_student(request, id):
+    student = get_object_or_404(Student, id=id)
+    if request.method == 'POST':
+        form = StudentModelForm(request.POST, instance=student)
+        if form.is_valid():
+            form.save()
+            return redirect('student_list')
+    else:
+        form = StudentModelForm(instance=student)
+    return render(request, 'add_student.html', {'form': form})
+
+
+
+def delete_student(request, id):
+    student = get_object_or_404(Student, id=id)
+    if request.method == 'POST':
+        student.delete()
+        return redirect('student_list')
+    return render(request, 'confirm_delete.html', {'student': student})
