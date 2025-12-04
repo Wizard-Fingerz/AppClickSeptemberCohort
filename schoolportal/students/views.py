@@ -3,7 +3,10 @@ from django.http import HttpResponse
 from .models import Student
 from django.views import View
 from django.views.generic import TemplateView, ListView, DetailView
-from .forms import StudentForm, StudentModelForm
+from .forms import StudentForm, StudentModelForm, SignUpForm
+from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.decorators import login_required
 # Create your views here.
 
 
@@ -20,6 +23,7 @@ def contact(request):
 def profile(request):
     return HttpResponse("<h1>Student Profile Page</h1>")
 
+@login_required(login_url='login')
 def student_list(request):
     students = Student.objects.all()
     return render(request, 'student_list.html', {'all_students': students})
@@ -97,3 +101,31 @@ def delete_student(request, id):
         student.delete()
         return redirect('student_list')
     return render(request, 'confirm_delete.html', {'student': student})
+
+
+def register(request):
+    if request.method == 'POST':
+        form = SignUpForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('student-home')
+    else:
+        form = SignUpForm()
+    return render(request, 'register.html', {'form': form})
+
+def login_view(request):
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data = request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            return redirect('student-home')
+    else:
+        form = AuthenticationForm()
+    return render(request, 'login.html', {'form': form})
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('student-home')
