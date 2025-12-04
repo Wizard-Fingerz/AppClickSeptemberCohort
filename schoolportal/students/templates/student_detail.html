@@ -10,6 +10,8 @@
     <p><strong>Name:</strong> {{ student.name }}</p>
     <p><strong>Age:</strong> {{ student.age }}</p>
     <p><strong>Grade:</strong> {{ student.grade }}</p>
-
+    {% if student.profile_picture %}
+      <img src="{{ student.profile_picture.url }}" alt="Profile Picture" width="200"/>
+    {% endif %}
 </body>
 </html>

@@ -189,7 +189,14 @@ Example:
 {% load static %}
 <link rel="stylesheet" href="{% static 'myapp/css/style.css' %}">
 
-<img src="{% if user.profile.profile_picture %}{{ user.profile.profile_picture.url }}{% else %}{% static 'myapp/images/default.png' %}{% endif %}" alt="Profile">
+<img src="{% if user.profile.profile_picture %}
+{{ user.profile.profile_picture.url }}
+ 
+ {% else %}
+ 
+ {% static 'myapp/images/default.png' %}
+ {% endif %}"
+  alt="Profile">
 ```
 
 * Shows user-uploaded image if exists

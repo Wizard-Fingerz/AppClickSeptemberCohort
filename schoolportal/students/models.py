@@ -8,7 +8,9 @@ class Student(models.Model):
     age = models.PositiveIntegerField()
     grade = models.CharField(max_length=10)
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    profile_picture = models.ImageField(upload_to='student_profiles/', null=True, blank=True)
 
+    
     def __str__(self):
         return self.name
     

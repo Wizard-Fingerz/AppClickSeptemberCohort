@@ -1,5 +1,5 @@
 <h2>Add Student</h2>
-<form method="post">
+<form method="post"  enctype="multipart/form-data">
     {% csrf_token %}
     {{ reg_form.as_p }}
     <button type="submit">Submit</button>

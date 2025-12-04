@@ -15,7 +15,7 @@ class StudentForm(forms.Form):
 class StudentModelForm(forms.ModelForm):
     class Meta:
         model = Student
-        fields = ['name', 'age', 'grade', 'teacher']
+        fields = ['name', 'age', 'grade', 'teacher', 'profile_picture']
 
 
 class SignUpForm(UserCreationForm):

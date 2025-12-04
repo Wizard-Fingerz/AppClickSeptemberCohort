@@ -57,13 +57,14 @@ class StudentDetailView(DetailView):
 
 def student_form(request):
     if request.method == 'POST':
-        form = StudentForm(request.POST)
+        form = StudentForm(request.POST, request.FILES)
         if form.is_valid():
             # Access data
             name = form.cleaned_data['name']
             age = form.cleaned_data['age']
             grade = form.cleaned_data['grade']
             # You can save to DB here manually
+            form.save()
             return render(request, 'success.html', {'name': name})
     else:
         form = StudentForm()
@@ -73,7 +74,7 @@ def student_form(request):
 
 def add_student(request):
     if request.method == 'POST':
-        form = StudentModelForm(request.POST)
+        form = StudentModelForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()  # Automatically saves to DB
             return redirect('student_list')
