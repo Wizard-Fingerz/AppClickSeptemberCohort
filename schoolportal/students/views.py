@@ -1,5 +1,5 @@
 from django.shortcuts import redirect, render, get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from .models import Student
 from django.views import View
 from django.views.generic import TemplateView, ListView, DetailView
@@ -31,7 +31,13 @@ def student_list(request):
 
 def student_detail(request, student_id):
     # student = get_object_or_404(Student, pk=student_id)
-    student = Student.objects.get(pk=student_id)
+    try:
+        student = Student.objects.get(pk=student_id)
+    except Student.DoesNotExist:
+        raise Http404("<h1>Student not found</h1>")
+    # student = Student.objects.get(pk=student_id)
+
+
     return render(request, 'student_detail.html', {'student': student})
 
 
@@ -67,6 +73,8 @@ def student_form(request):
             # You can save to DB here manually
             form.save()
             return render(request, 'success.html', {'name': name})
+        else:
+            print(form.errors)
     else:
         form = StudentForm()
     return render(request, 'student_form.html', {'reg_form': form})
@@ -79,6 +87,8 @@ def add_student(request):
         if form.is_valid():
             form.save()  # Automatically saves to DB
             return redirect('student_list')
+        else:
+            print(form.errors)
     else:
         form = StudentModelForm()
     return render(request, 'add_student.html', {'form': form})
